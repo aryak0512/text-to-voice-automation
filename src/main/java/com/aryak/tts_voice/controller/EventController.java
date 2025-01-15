@@ -1,5 +1,6 @@
 package com.aryak.tts_voice.controller;
 
+import com.aryak.tts_voice.config.QueueManager;
 import com.aryak.tts_voice.model.Event;
 import com.aryak.tts_voice.repo.EventRepository;
 import com.aryak.tts_voice.service.GCSUploaderService;
@@ -7,11 +8,17 @@ import com.aryak.tts_voice.service.TextToSpeechService;
 import io.swagger.v3.oas.annotations.Operation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.File;
 import java.util.List;
 
+/**
+ * @author aryak
+ *
+ * API to trigger voice message to handsets
+ */
 @RestController
 public class EventController {
 
@@ -19,14 +26,11 @@ public class EventController {
 
     private final EventRepository eventRepository;
 
-    private final TextToSpeechService textToSpeechService;
+    private final QueueManager queueManager;
 
-    private final GCSUploaderService uploaderService;
-
-    public EventController(EventRepository eventRepository, TextToSpeechService textToSpeechService, GCSUploaderService uploaderService) {
+    public EventController(EventRepository eventRepository, QueueManager queueManager) {
         this.eventRepository = eventRepository;
-        this.textToSpeechService = textToSpeechService;
-        this.uploaderService = uploaderService;
+        this.queueManager = queueManager;
     }
 
     /**
@@ -34,27 +38,10 @@ public class EventController {
      * @param config
      */
     @PostMapping(value = "/add")
-    public void addConfig(@RequestBody Event config) {
-
-        File file = null;
-
-        // task 1 - do the text to speech conversion and save file on disk
-        try {
-            file = textToSpeechService.convertTextToSpeech(config.message(), config.fileName(), config.hindi());
-        } catch (Exception e) {
-            log.error("Exception occurred during converting from speech to text : ", e);
-        }
-
-        // task 2 - upload file to Google cloud bucket
-        try {
-            uploaderService.uploadFile(System.getenv("BUCKET_NAME"), config.fileName(), file);
-        } catch (Exception e) {
-            log.error("Exception occurred while uploading file to GCP bucket : ", e.getCause());
-        }
-
-        // task 3 - then store metadata of event to db
-        eventRepository.save(config);
-
+    public ResponseEntity<String> addConfig(@RequestBody Event config) {
+        boolean success = queueManager.getTextToSpeechQueue().add(config);
+        log.info("Add operation gave : {}", success);
+        return new ResponseEntity<>("Your request has been taken up for processing.", HttpStatus.CREATED);
     }
 
     @GetMapping(value = "/")

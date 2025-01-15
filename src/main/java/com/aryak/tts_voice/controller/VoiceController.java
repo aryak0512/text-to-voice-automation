@@ -1,6 +1,8 @@
 package com.aryak.tts_voice.controller;
 
+import com.aryak.tts_voice.model.Event;
 import com.aryak.tts_voice.model.VoiceRequest;
+import com.aryak.tts_voice.repo.EventRepository;
 import com.aryak.tts_voice.service.GCSUploaderService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,11 +21,13 @@ public class VoiceController {
     private final TwilioService twilioService;
     private final TextToSpeechService textToSpeechService;
     private final GCSUploaderService gcsUploaderService;
+    private final EventRepository eventRepository;
 
-    public VoiceController(TwilioService twilioService, TextToSpeechService textToSpeechService, GCSUploaderService gcsUploaderService) {
+    public VoiceController(TwilioService twilioService, TextToSpeechService textToSpeechService, GCSUploaderService gcsUploaderService, EventRepository eventRepository) {
         this.twilioService = twilioService;
         this.textToSpeechService = textToSpeechService;
         this.gcsUploaderService = gcsUploaderService;
+        this.eventRepository = eventRepository;
     }
 
     @PostMapping("/call")
@@ -37,8 +41,7 @@ public class VoiceController {
             String message = voiceRequest.message();
             String audioFile = voiceRequest.filename() + ".mp3";
 
-            String audioPath = textToSpeechService.convertTextToSpeech(message, audioFile, voiceRequest);
-            File file = new File(audioPath);
+            File file = textToSpeechService.convertTextToSpeech(message, audioFile, voiceRequest.hindi());
             String fileName = file.getName();
             String url = "https://storage.googleapis.com/" + System.getenv("BUCKET_NAME") + "/" + audioFile;
 
@@ -68,8 +71,7 @@ public class VoiceController {
             String message = voiceRequest.message();
             String audioFile = voiceRequest.filename() + ".mp3";
 
-            String audioPath = textToSpeechService.convertTextToSpeech(message, audioFile, voiceRequest);
-            File file = new File(audioPath);
+            File file = textToSpeechService.convertTextToSpeech(message, audioFile, voiceRequest.hindi());
             String fileName = file.getName();
             String url = "https://storage.googleapis.com/" + System.getenv("BUCKET_NAME") + "/" + audioFile;
 
@@ -82,5 +84,29 @@ public class VoiceController {
             e.printStackTrace();
             return "Error: " + e.getMessage();
         }
+    }
+
+    @GetMapping(value = "/v1/trigger/{eventId}")
+    public void triggerAlert(@PathVariable int eventId) {
+
+        var event = eventRepository.findByEventId(eventId);
+
+        // retrieve public bucket url
+        String audioFile = event.fileName();
+        String url = "https://storage.googleapis.com/" + System.getenv("BUCKET_NAME") + "/" + audioFile;
+
+        log.info("Url : {}", url);
+        // prepare list of mobile numbers from event config
+        var mobileNumbers = event.receivers()
+                .stream()
+                .map(r -> r.countryCode().concat(r.mobile()))
+                .filter(n -> ! n.equals("+919769643044"))  // remove blacklist/ DND customers
+                .toList();
+
+        log.info("Prepared mobile numbers list : {}", mobileNumbers);
+
+        // prepare voice requests & fire multithreaded
+        mobileNumbers.parallelStream().forEach(number -> twilioService.makeVoiceCall(number, url));
+
     }
 }

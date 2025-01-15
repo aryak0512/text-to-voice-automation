@@ -5,18 +5,19 @@ import com.google.cloud.texttospeech.v1.*;
 import com.google.protobuf.ByteString;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
 @Service
 public class TextToSpeechService {
 
-    public String convertTextToSpeech(String text, String outputFile, VoiceRequest voiceRequest) throws IOException {
-        try (TextToSpeechClient textToSpeechClient = TextToSpeechClient.create()) {
+    public File convertTextToSpeech(String text, String outputFile, boolean hindi) throws IOException {
+        try ( TextToSpeechClient textToSpeechClient = TextToSpeechClient.create() ) {
             // Set the text input
             SynthesisInput input = SynthesisInput.newBuilder().setText(text).build();
             VoiceSelectionParams voice;
-            if ( voiceRequest.hindi() ) {
+            if ( hindi ) {
                 voice = VoiceSelectionParams.newBuilder()
                         .setLanguageCode("hi-IN") // Hindi
                         .setName("hi-IN-Wavenet-A") // Change to desired voice
@@ -38,11 +39,11 @@ public class TextToSpeechService {
 
             // Save the audio file
             ByteString audioContents = response.getAudioContent();
-            String path = "./files/"+ outputFile;
-            try (FileOutputStream out = new FileOutputStream(path)) {
+            String path = "./files/" + outputFile;
+            try ( FileOutputStream out = new FileOutputStream(path) ) {
                 out.write(audioContents.toByteArray());
             }
-            return path;
+            return new File(path);
         }
     }
 }

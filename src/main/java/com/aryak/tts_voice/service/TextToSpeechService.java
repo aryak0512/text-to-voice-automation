@@ -16,9 +16,15 @@ public class TextToSpeechService {
             SynthesisInput input = SynthesisInput.newBuilder().setText(text).build();
 
             // Select the voice and language
+//            VoiceSelectionParams voice = VoiceSelectionParams.newBuilder()
+//                    .setLanguageCode("en-US") // Change language if needed
+//                    .setSsmlGender(SsmlVoiceGender.MALE)
+//                    .build();
+
+            // Build the voice request, select the language code and voice name
             VoiceSelectionParams voice = VoiceSelectionParams.newBuilder()
-                    .setLanguageCode("en-US") // Change language if needed
-                    .setSsmlGender(SsmlVoiceGender.NEUTRAL)
+                    .setLanguageCode("hi-IN") // Hindi
+                    .setName("hi-IN-Wavenet-A") // Change to desired voice
                     .build();
 
             // Set audio configuration
@@ -31,10 +37,11 @@ public class TextToSpeechService {
 
             // Save the audio file
             ByteString audioContents = response.getAudioContent();
-            try (FileOutputStream out = new FileOutputStream(outputFile)) {
+            String path = "./files/"+ outputFile;
+            try (FileOutputStream out = new FileOutputStream(path)) {
                 out.write(audioContents.toByteArray());
             }
-            return outputFile;
+            return path;
         }
     }
 }

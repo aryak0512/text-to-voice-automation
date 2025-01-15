@@ -37,13 +37,13 @@ public class VoiceController {
             String message = voiceRequest.message();
             String audioFile = voiceRequest.filename() +".mp3";
 
-            String audioPath = textToSpeechService.convertTextToSpeech(message, audioFile);
+            String audioPath = textToSpeechService.convertTextToSpeech(message, audioFile, voiceRequest);
             File file = new File(audioPath);
             String fileName = file.getName();
             String url = "https://storage.googleapis.com/"+System.getenv("BUCKET_NAME")+"/"+ audioFile;
 
             // push to google cloud bucket programmatically
-            gcsUploaderService.uploadFile("my-bucket-aryak", fileName, file);
+            gcsUploaderService.uploadFile(System.getenv("BUCKET_NAME"), fileName, file);
             log.info("File uploaded to URL : {}", url);
             twilioService.makeVoiceCall(toPhoneNumber, url);
             log.info("Twilio request success.");

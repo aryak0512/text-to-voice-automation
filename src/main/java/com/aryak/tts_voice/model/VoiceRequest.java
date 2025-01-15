@@ -4,6 +4,7 @@ public record VoiceRequest (
         String countryCode,
         String mobile,
         String message,
-        String filename){}
+        String filename,
+        boolean hindi){}
 
 

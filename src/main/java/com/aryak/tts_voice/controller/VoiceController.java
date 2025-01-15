@@ -1,6 +1,5 @@
 package com.aryak.tts_voice.controller;
 
-import com.aryak.tts_voice.model.Event;
 import com.aryak.tts_voice.model.VoiceRequest;
 import com.aryak.tts_voice.repo.EventRepository;
 import com.aryak.tts_voice.service.GCSUploaderService;

@@ -5,6 +5,8 @@ import com.twilio.rest.api.v2010.account.Call;
 import com.twilio.type.PhoneNumber;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
+
 @Service
 public class TwilioService {
 
@@ -14,11 +16,14 @@ public class TwilioService {
 
     public void makeVoiceCall(String toPhoneNumber, String audioUrl) {
 
-        Call call = Call.creator(
-                new PhoneNumber(toPhoneNumber),
-                new PhoneNumber(System.getenv("TWILIO_PHONE_NUMBER")),
-                new com.twilio.type.Twiml("<Response><Play>" + audioUrl + "</Play></Response>")
-        ).create();
+        Call.creator(
+                        new PhoneNumber(toPhoneNumber),
+                        new PhoneNumber(System.getenv("TWILIO_PHONE_NUMBER")),
+                        new com.twilio.type.Twiml("<Response><Play>" + audioUrl + "</Play></Response>")
+                )
+                ///6781-115-96-218-65.ngrok-free.app
+                .setStatusCallback("https://6781-115-96-218-65.ngrok-free.app/twilio/call-status")
+                .setStatusCallbackEvent(Arrays.asList("initiated", "ringing", "in-progress", "completed", "busy", "failed", "no-answer")).create();
     }
 
 }

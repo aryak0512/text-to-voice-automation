@@ -45,8 +45,6 @@ public class EventController {
             log.error("Exception occurred during converting from speech to text : ", e);
         }
 
-        log.info("Step 1 done");
-
         // task 2 - upload file to Google cloud bucket
         try {
             uploaderService.uploadFile(System.getenv("BUCKET_NAME"), config.fileName(), file);
@@ -54,11 +52,8 @@ public class EventController {
             log.error("Exception occurred while uploading file to GCP bucket : ", e.getCause());
         }
 
-        log.info("Step 2 done");
-
         // task 3 - then store metadata of event to db
         eventRepository.save(config);
-        log.info("Step 3 done");
 
     }
 

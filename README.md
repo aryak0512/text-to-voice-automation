@@ -37,3 +37,5 @@ curl --location 'http://localhost:8080/api/bulk' \
     "filename" : "english-4"
 }'
 ```
+**Swagger**
+<img width="1499" alt="Screenshot 2025-01-15 at 16 28 02" src="https://github.com/user-attachments/assets/152ac85a-d417-4b6d-89c7-362e5d5cf134" />

@@ -2,7 +2,6 @@ package com.aryak.tts_voice.controller;
 
 import com.aryak.tts_voice.model.VoiceRequest;
 import com.aryak.tts_voice.service.GCSUploaderService;
-import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
@@ -10,6 +9,7 @@ import com.aryak.tts_voice.service.TextToSpeechService;
 import com.aryak.tts_voice.service.TwilioService;
 
 import java.io.File;
+import java.util.Arrays;
 
 @RestController
 @RequestMapping("/api")
@@ -35,12 +35,12 @@ public class VoiceController {
 
             String toPhoneNumber = voiceRequest.countryCode() + voiceRequest.mobile();
             String message = voiceRequest.message();
-            String audioFile = voiceRequest.filename() +".mp3";
+            String audioFile = voiceRequest.filename() + ".mp3";
 
             String audioPath = textToSpeechService.convertTextToSpeech(message, audioFile, voiceRequest);
             File file = new File(audioPath);
             String fileName = file.getName();
-            String url = "https://storage.googleapis.com/"+System.getenv("BUCKET_NAME")+"/"+ audioFile;
+            String url = "https://storage.googleapis.com/" + System.getenv("BUCKET_NAME") + "/" + audioFile;
 
             // push to google cloud bucket programmatically
             gcsUploaderService.uploadFile(System.getenv("BUCKET_NAME"), fileName, file);
@@ -48,6 +48,35 @@ public class VoiceController {
             twilioService.makeVoiceCall(toPhoneNumber, url);
             log.info("Twilio request success.");
             return "Voice call initiated to " + toPhoneNumber;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Error: " + e.getMessage();
+        }
+    }
+
+    @PostMapping("/bulk")
+    public String makeBulkVoiceCalls(@RequestBody VoiceRequest voiceRequest) {
+
+        log.info("Request bulk received for voice call : {}", voiceRequest);
+
+        try {
+
+            String countryCode = voiceRequest.countryCode();
+            var mobileNumbers = Arrays.stream(voiceRequest.mobile().split(",")).map(countryCode::concat).toList();
+            log.info("Mobile numbers : {}", mobileNumbers);
+            String message = voiceRequest.message();
+            String audioFile = voiceRequest.filename() + ".mp3";
+
+            String audioPath = textToSpeechService.convertTextToSpeech(message, audioFile, voiceRequest);
+            File file = new File(audioPath);
+            String fileName = file.getName();
+            String url = "https://storage.googleapis.com/" + System.getenv("BUCKET_NAME") + "/" + audioFile;
+
+            // push to google cloud bucket programmatically
+            gcsUploaderService.uploadFile(System.getenv("BUCKET_NAME"), fileName, file);
+            mobileNumbers.parallelStream().forEach(number -> twilioService.makeVoiceCall(number, url));
+            return "Voice calls initiated";
 
         } catch (Exception e) {
             e.printStackTrace();
